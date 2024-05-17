@@ -14,18 +14,26 @@
 # See the Mulan PSL v2 for more details.
 #**************************************************************************************/
 
-ifeq ($(wildcard $(NEMU_HOME)/src/nemu-main.c),)
-  $(error NEMU_HOME=$(NEMU_HOME) is not a NEMU repo)
+# check if NEMU_HOME is a NEMU repo, compare wildcard result with empty string, if not a NEMU repo, error
+# error command, print error message and exit
+ifeq ($(wildcard $(NEMU_HOME)/src/nemu-main.c),) 
+  $(error NEMU_HOME=$(NEMU_HOME) is not a NEMU repo) 
 endif
 
--include $(NEMU_HOME)/include/config/auto.conf
+# include auto.conf file in NEMU_HOME/include/config, if not exist, ignore.But if it uses include, it will not be ignored
+-include $(NEMU_HOME)/include/config/auto.conf 
 -include $(NEMU_HOME)/include/config/auto.conf.cmd
 
 DIRS-y = src/cpu src/monitor src/utils
-DIRS-$(CONFIG_MODE_SYSTEM) += src/memory
+# if CONFIG_MODE_SYSTEM is defined, add src/memory to DIRS-y, CONFIG_MODE_SYSTEM is defined in auto.conf
+# In auto.conf, CONFIG_MODE_SYSTEM is defined as y, so src/memory will be added to DIRS-y, maybe it is used to define the mode of NEMU
+DIRS-$(CONFIG_MODE_SYSTEM) += src/memory 
 
-remove_quote = $(patsubst "%",%,$(1))
+# remove quote in the string, patsubst is a function in makefile, it is used to replace the first parameter with the second parameter in the third parameter
+remove_quote = $(patsubst "%",%,$(1)) 
 
+# if CONFIG_ISA is defined, ISA is defined as the value of CONFIG_ISA, otherwise, ISA is defined as x86
+# function call is used to call a function in makefile, it is used to call remove_quote function, its first parameter is the fuction name, the second parameter is the parameter of the function
 ISA    ?= $(if $(CONFIG_ISA),$(call remove_quote,$(CONFIG_ISA)),x86)
 CFLAGS += -D__ISA__=$(ISA)
 # CFLAGS += -g
@@ -99,6 +107,7 @@ SPECIALIZE_TYPE = RISCV
 else
 SPECIALIZE_TYPE = 8086-SSE
 endif
+
 ifdef CONFIG_SHARE
 SOFTFLOAT_OPTS_DEFAULT = -DSOFTFLOAT_ROUND_ODD -DINLINE_LEVEL=5 \
   -DSOFTFLOAT_FAST_DIV32TO16 -DSOFTFLOAT_FAST_DIV64TO32
@@ -109,14 +118,19 @@ SOFTFLOAT_REPO_PATH = resource/softfloat/repo
 ifeq ($(wildcard $(SOFTFLOAT_REPO_PATH)/COPYING.txt),)
   $(shell git clone --depth=1 https://github.com/ucb-bar/berkeley-softfloat-3 $(SOFTFLOAT_REPO_PATH))
 endif
-SOFTFLOAT_BUILD_PATH = $(abspath $(SOFTFLOAT_REPO_PATH)/build/Linux-x86_64-GCC)
+# abspath is a function in makefile, it is used to get the absolute path of the parameter
+SOFTFLOAT_BUILD_PATH = $(abspath $(SOFTFLOAT_REPO_PATH)/build/Linux-x86_64-GCC) 
 
 INC_DIR += $(SOFTFLOAT_REPO_PATH)/source/include
 INC_DIR += $(SOFTFLOAT_REPO_PATH)/source/$(SPECIALIZE_TYPE)
 LIBS += $(SOFTFLOAT)
+
+# @D is the directory part of the target, @F is the file part of the target
+# $@ is the target, $^ is all the prerequisites, $< is the first prerequisite
+# $(MAKE) is a variable in makefile, it is used to call make command
 $(SOFTFLOAT):
 	SPECIALIZE_TYPE=$(SPECIALIZE_TYPE) $(SOFTFLOAT_OPTS_OVERRIDE) $(MAKE) -s -C $(SOFTFLOAT_BUILD_PATH) all
-	mkdir -p $(@D)
+	mkdir -p $(@D) 
 	ln -sf $(SOFTFLOAT_BUILD_PATH)/softfloat.a $@
 
 clean-softfloat:
@@ -124,7 +138,7 @@ clean-softfloat:
 clean-all: clean-softfloat
 
 .PHONY: $(SOFTFLOAT) clean-softfloat
-else ifdef CONFIG_FPU_HOST
+else ifdef CONFIG_FPU_HOST 
 LDFLAGS += -lm
 endif
 
